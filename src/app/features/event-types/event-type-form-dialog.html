@@ -1,0 +1,92 @@
+@if (open) {
+  <div class="modal-backdrop" (click)="close()" role="presentation">
+    <div
+      class="modal em-card"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="dialogTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal__accent"></div>
+      <header class="modal__head">
+        <div>
+          <h2 class="t-headline-lg">{{ dialogTitle }}</h2>
+          <p class="t-caption muted">تعريف تصنيف الفعاليات المستخدم في الحجوزات</p>
+        </div>
+        <button type="button" class="icon-btn" (click)="close()" aria-label="إغلاق" [disabled]="saving()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <form class="modal__body" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="grid-2">
+          <div class="em-field" [class.em-field--error]="fieldError('name')">
+            <label class="em-label" for="typeName">اسم نوع الفعالية <span class="req">*</span></label>
+            <input id="typeName" class="em-input" formControlName="name" placeholder="مثال: حفل زفاف" />
+            @if (fieldError('name'); as err) {
+              <span class="em-field-error">{{ err }}</span>
+            }
+          </div>
+          <div class="em-field">
+            <label class="em-label" for="typeCode">الرمز</label>
+            <input id="typeCode" class="em-input" formControlName="code" placeholder="WEDDING" />
+          </div>
+          <div class="em-field full">
+            <label class="em-label" for="typeDesc">الوصف</label>
+            <textarea
+              id="typeDesc"
+              class="em-textarea"
+              rows="3"
+              formControlName="description"
+              placeholder="وصف مختصر لنوع الفعالية"
+            ></textarea>
+          </div>
+          <div class="em-field" [class.em-field--error]="fieldError('displayOrder')">
+            <label class="em-label" for="typeOrder">ترتيب العرض</label>
+            <input id="typeOrder" type="number" min="0" step="1" class="em-input" formControlName="displayOrder" />
+            @if (fieldError('displayOrder'); as err) {
+              <span class="em-field-error">{{ err }}</span>
+            }
+          </div>
+          <div class="em-field">
+            <label class="em-label" for="typeStatus">الحالة</label>
+            <div class="em-select-wrap">
+              <select id="typeStatus" class="em-select" formControlName="active">
+                <option [ngValue]="true">فعال</option>
+                <option [ngValue]="false">غير فعال</option>
+              </select>
+              <span class="material-symbols-outlined chevron">expand_more</span>
+            </div>
+          </div>
+          <div class="em-field">
+            <label class="em-label" for="typeIcon">أيقونة العرض</label>
+            <div class="em-select-wrap">
+              <select id="typeIcon" class="em-select" formControlName="icon">
+                <option value="celebration">celebration</option>
+                <option value="corporate_fare">corporate_fare</option>
+                <option value="groups">groups</option>
+                <option value="workspace_premium">workspace_premium</option>
+                <option value="dinner_dining">dinner_dining</option>
+                <option value="school">school</option>
+                <option value="category">category</option>
+                <option value="event">event</option>
+              </select>
+              <span class="material-symbols-outlined chevron">expand_more</span>
+            </div>
+          </div>
+        </div>
+
+        @if (saveError()) {
+          <div class="inline-error" role="alert">{{ saveError() }}</div>
+        }
+
+        <footer class="modal__actions">
+          <button type="button" class="em-btn em-btn--ghost" (click)="close()" [disabled]="saving()">إلغاء</button>
+          <button type="submit" class="em-btn em-btn--primary" [disabled]="saving()">
+            {{ saving() ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديلات' : 'حفظ نوع الفعالية' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}

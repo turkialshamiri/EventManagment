@@ -1,0 +1,390 @@
+<div class="em-page list-page">
+  @if (kpis(); as k) {
+    <div class="kpi-grid">
+      <app-kpi-card title="إجمالي فعاليات الشهر" [value]="k.monthlyEvents" unit="فعالية" icon="calendar_month" iconTone="gold">
+        <span kpiTrailing class="trend">
+          <span class="material-symbols-outlined">trending_up</span> +{{ k.monthlyGrowthPercent }}%
+        </span>
+        <span>معدل التأكيد: {{ k.confirmationRate }}%</span>
+        <span>الهدف المالي: 94% محقق</span>
+      </app-kpi-card>
+      <app-kpi-card title="فعاليات جارية وتأكيد اليوم" [value]="k.todayLive" unit="جارية الآن" icon="door_open" iconTone="gold">
+        <span class="live-dot pulse-dot" kpiTrailing></span>
+        <span>إشغال الصالات: {{ k.hallOccupancy }}%</span>
+        <span>عدد الضيوف اليوم: {{ k.todayGuests | arNumber }}</span>
+      </app-kpi-card>
+      <app-kpi-card
+        title="إجمالي الإيرادات التعاقدية"
+        [value]="k.contractRevenue | arNumber"
+        unit="ر.س"
+        icon="payments"
+        iconTone="gold"
+      >
+        <span kpiTrailing class="trend">{{ k.collectedPercent }}% محصّل</span>
+        <span>المتبقي تحصيله: {{ k.remainingCollect | sar }}</span>
+        <span style="color: var(--secondary); font-weight: 500">مستحقة قريباً</span>
+      </app-kpi-card>
+      <app-kpi-card
+        title="أوامر التشغيل BEO وحالة المطابخ"
+        [value]="k.beoApproved + ' / ' + k.beoTotal"
+        unit="معتمدة"
+        icon="soup_kitchen"
+        iconTone="gold"
+      >
+        <span kpiTrailing class="warn-chip">
+          <span class="material-symbols-outlined">priority_high</span> {{ k.beoNeedsReview }} تحتاج مراجعة
+        </span>
+        <span>جاهزية القاعات: {{ k.venueReadiness }}%</span>
+        <span>طواقم الضيافة: مكتملة</span>
+      </app-kpi-card>
+    </div>
+  }
+
+  <section class="em-card hub">
+    <div class="hub__text">
+      <div class="crumbs t-label-sm muted">
+        <span>الرئيسية</span>
+        <span class="material-symbols-outlined crumb-ico">arrow_back_ios</span>
+        <span>الفعاليات والمناسبات</span>
+        <span class="material-symbols-outlined crumb-ico">arrow_back_ios</span>
+        <span class="current">كافة المناسبات</span>
+      </div>
+      <div class="hub__title-row">
+        <h1 class="t-display-lg">كافة المناسبات والفعاليات</h1>
+        <span class="chip t-caption">سجل مركزي شامل • {{ statusCounts().all }} فعالية</span>
+      </div>
+      <p class="t-body-sm muted">
+        إدارة الحجوزات، جداول التشغيل، أرصدة العقود، والتحكم الفوري في سعات القاعات الفندقية الفاخرة.
+      </p>
+    </div>
+    <div class="hub__actions">
+      <button type="button" class="em-btn em-btn--ghost">
+        <span class="material-symbols-outlined">download</span> تصدير كـ Excel / PDF
+      </button>
+      <button type="button" class="em-btn em-btn--ghost">
+        <span class="material-symbols-outlined">view_column</span> تخصيص الأعمدة
+      </button>
+      <a routerLink="/events/new" class="em-btn em-btn--primary">
+        <span class="material-symbols-outlined">add_circle</span> + إنشاء مناسبة جديدة
+      </a>
+    </div>
+  </section>
+
+  <section class="em-card filters">
+    <div class="filters__top">
+      <div class="search-wrap">
+        <span class="material-symbols-outlined search-ico">search</span>
+        <input
+          class="em-input search-input"
+          type="search"
+          [(ngModel)]="search"
+          (ngModelChange)="reload()"
+          placeholder="بحث بالاسم، رقم المناسبة (#EVT)، اسم العميل، الشركة، أو رقم الهاتف..."
+          aria-label="بحث المناسبات"
+        />
+      </div>
+      <div class="status-chips" role="tablist">
+        <button type="button" class="chip-btn" [class.active]="status === 'all'" (click)="setStatus('all')">
+          الكل <span class="count">{{ statusCounts().all }}</span>
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="status === 'in_progress'"
+          (click)="setStatus('in_progress')"
+        >
+          <span class="dot" style="background: var(--status-active)"></span> قيد التنفيذ
+          <span class="count">{{ statusCounts().in_progress }}</span>
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="status === 'confirmed'"
+          (click)="setStatus('confirmed')"
+        >
+          <span class="dot" style="background: var(--status-confirmed)"></span> مؤكدة
+          <span class="count">{{ statusCounts().confirmed }}</span>
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="status === 'tentative'"
+          (click)="setStatus('tentative')"
+        >
+          <span class="dot" style="background: var(--status-tentative)"></span> مبدئية / معلقة
+          <span class="count">{{ statusCounts().tentative }}</span>
+        </button>
+        <button type="button" class="chip-btn" [class.active]="status === 'draft'" (click)="setStatus('draft')">
+          <span class="dot" style="background: var(--outline)"></span> مسودة
+          <span class="count">{{ statusCounts().draft }}</span>
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="status === 'completed'"
+          (click)="setStatus('completed')"
+        >
+          منتهية <span class="count">{{ statusCounts().completed }}</span>
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="status === 'cancelled'"
+          (click)="setStatus('cancelled')"
+        >
+          <span class="dot" style="background: var(--error)"></span> ملغاة
+          <span class="count">{{ statusCounts().cancelled }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="filters__grid">
+      <div class="em-field">
+        <label class="em-label" for="venueFilter">القاعة أو الموقع</label>
+        <div class="em-select-wrap">
+          <select id="venueFilter" class="em-select" [(ngModel)]="venueId" (ngModelChange)="reload()">
+            <option value="all">جميع القاعات والمواقع</option>
+            @for (v of venues(); track v.id) {
+              <option [value]="v.id">{{ v.name }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined chevron">expand_more</span>
+        </div>
+      </div>
+      <div class="em-field">
+        <label class="em-label" for="typeFilter">نوع الفعالية</label>
+        <div class="em-select-wrap">
+          <select id="typeFilter" class="em-select" [(ngModel)]="eventTypeId" (ngModelChange)="reload()">
+            <option value="all">كافة الأنواع (الكل)</option>
+            @for (t of types(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined chevron">expand_more</span>
+        </div>
+      </div>
+      <div class="em-field">
+        <label class="em-label" for="dateFilter">النطاق الزمني</label>
+        <div class="em-select-wrap">
+          <select id="dateFilter" class="em-select" [(ngModel)]="dateRange" (ngModelChange)="reload()">
+            <option value="week">هذا الأسبوع (20 - 26 أكتوبر)</option>
+            <option value="today">اليوم فقط (24 أكتوبر)</option>
+            <option value="month">هذا الشهر</option>
+            <option value="all">كل التواريخ</option>
+          </select>
+          <span class="material-symbols-outlined chevron">expand_more</span>
+        </div>
+      </div>
+      <div class="em-field">
+        <label class="em-label" for="capFilter">سعة الحضور</label>
+        <div class="em-select-wrap">
+          <select id="capFilter" class="em-select" [(ngModel)]="capacityBand" (ngModelChange)="reload()">
+            <option value="all">جميع السعات</option>
+            <option value="small">أقل من 100</option>
+            <option value="med">100 – 300</option>
+            <option value="large">أكثر من 300</option>
+          </select>
+          <span class="material-symbols-outlined chevron">expand_more</span>
+        </div>
+      </div>
+      <div class="em-field reset-field">
+        <label class="em-label">&nbsp;</label>
+        <button type="button" class="em-btn em-btn--ghost" (click)="resetFilters()">إعادة ضبط الفلاتر</button>
+      </div>
+    </div>
+  </section>
+
+  @if (hasCapacityWarnings()) {
+    <div class="warn-banner" role="alert">
+      <span class="material-symbols-outlined">warning</span>
+      <p class="t-body-sm">
+        تنبيه: المناسبة <strong>EVT-2024-0894</strong> تتجاوز 90% من الطاقة الاستيعابية للقاعة. يُنصح بمراجعة
+        المخطط الهندسي قبل التنفيذ.
+      </p>
+      <a routerLink="/events/evt-894" class="em-btn em-btn--ghost em-btn--sm">مراجعة</a>
+    </div>
+  }
+
+  <section class="em-card table-card">
+    <div class="table-toolbar">
+      <label class="select-all t-label-sm">
+        <input
+          type="checkbox"
+          [checked]="selectedIds().size === paged().length && paged().length > 0"
+          (change)="toggleAll($any($event.target).checked)"
+        />
+        تحديد الكل
+      </label>
+      <div class="table-toolbar__actions">
+        <button type="button" class="em-btn em-btn--ghost em-btn--sm" [disabled]="!selectedIds().size">
+          <span class="material-symbols-outlined">print</span> طباعة BEO
+        </button>
+        <button type="button" class="em-btn em-btn--ghost em-btn--sm" [disabled]="!selectedIds().size">
+          <span class="material-symbols-outlined">mail</span> مراسلة جماعية
+        </button>
+      </div>
+    </div>
+
+    @if (error()) {
+      <app-page-state
+        kind="error"
+        icon="error"
+        title="تعذر تحميل المناسبات"
+        description="حدث خطأ أثناء جلب السجل. حاول مرة أخرى."
+        actionLabel="إعادة المحاولة"
+        (action)="reload()"
+      />
+    } @else if (loading()) {
+      <app-page-state kind="loading" />
+    } @else if (filtered().length === 0) {
+      <app-page-state
+        kind="no-results"
+        icon="search_off"
+        title="لم يتم العثور على نتائج"
+        description="جرّب تغيير معايير البحث أو إعادة ضبط الفلاتر"
+        actionLabel="إعادة ضبط الفلاتر"
+        (action)="resetFilters()"
+      />
+    } @else {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col" class="col-check"></th>
+              <th scope="col">رقم المناسبة</th>
+              <th scope="col">المناسبة والنوع</th>
+              <th scope="col">العميل والتواصل</th>
+              <th scope="col">القاعة والتجهيز</th>
+              <th scope="col">التاريخ / الحضور</th>
+              <th scope="col">الحالة</th>
+              <th scope="col">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ev of paged(); track ev.id) {
+              <tr [class.warn-row]="ev.hasCapacityWarning" [class.selected]="isSelected(ev.id)">
+                <td>
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(ev.id)"
+                    (change)="toggleOne(ev.id, $any($event.target).checked)"
+                    [attr.aria-label]="'تحديد ' + ev.code"
+                  />
+                </td>
+                <td>
+                  <div class="id-cell">
+                    <span class="status-bar" [style.background]="statusBarColor(ev.status)"></span>
+                    <div>
+                      <a class="code" [routerLink]="['/events', ev.id]">{{ ev.code }}</a>
+                      @if (ev.contractNumber) {
+                        <div class="t-caption muted">{{ ev.contractNumber }}</div>
+                      }
+                      @if (ev.hasCapacityWarning) {
+                        <span class="material-symbols-outlined alert-ico" title="تحذير سعة">error</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="name-cell">
+                    <span class="type-ico material-symbols-outlined">{{ ev.eventTypeIcon }}</span>
+                    <div>
+                      <a class="ev-name" [routerLink]="['/events', ev.id]">{{ ev.name }}</a>
+                      <div class="t-caption muted">{{ ev.eventTypeName }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="t-label-md">{{ ev.customer.name }}</div>
+                  <div class="t-caption muted">{{ ev.customer.phone }}</div>
+                  <span class="cat-tag" [attr.data-cat]="ev.customer.category">{{
+                    categoryLabels[ev.customer.category]
+                  }}</span>
+                </td>
+                <td>
+                  <div class="t-label-md">{{ ev.venueName }}</div>
+                  <div class="t-caption muted">{{ ev.setupName || '—' }}</div>
+                </td>
+                <td>
+                  <div class="t-label-md">{{ ev.startDate }}</div>
+                  <div class="t-caption muted">{{ ev.startTime }} – {{ ev.endTime }}</div>
+                  <div class="t-caption">{{ ev.expectedGuests | arNumber }} ضيف</div>
+                </td>
+                <td>
+                  <app-status-badge [status]="ev.status" [showDot]="ev.status === 'in_progress'" />
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <a [routerLink]="['/events', ev.id]" class="icon-action" title="عرض" aria-label="عرض">
+                      <span class="material-symbols-outlined">visibility</span>
+                    </a>
+                    <a [routerLink]="['/events', ev.id, 'edit']" class="icon-action" title="تعديل" aria-label="تعديل">
+                      <span class="material-symbols-outlined">edit</span>
+                    </a>
+                    <button type="button" class="icon-action" title="طباعة" aria-label="طباعة">
+                      <span class="material-symbols-outlined">print</span>
+                    </button>
+                    <button type="button" class="icon-action" title="المزيد" aria-label="المزيد">
+                      <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <span class="t-caption muted">{{ rangeLabel() }}</span>
+        <div class="pagination__controls">
+          <label class="t-caption muted">
+            صفوف الصفحة
+            <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange(+$event)">
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+          </label>
+          <button type="button" class="page-btn" [disabled]="page() <= 1" (click)="goPage(1)" aria-label="الأولى">
+            «
+          </button>
+          <button
+            type="button"
+            class="page-btn"
+            [disabled]="page() <= 1"
+            (click)="goPage(page() - 1)"
+            aria-label="السابق"
+          >
+            ‹
+          </button>
+          @for (p of [1, 2, 3]; track p) {
+            @if (p <= totalPages()) {
+              <button type="button" class="page-btn" [class.active]="page() === p" (click)="goPage(p)">
+                {{ p }}
+              </button>
+            }
+          }
+          <button
+            type="button"
+            class="page-btn"
+            [disabled]="page() >= totalPages()"
+            (click)="goPage(page() + 1)"
+            aria-label="التالي"
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            class="page-btn"
+            [disabled]="page() >= totalPages()"
+            (click)="goPage(totalPages())"
+            aria-label="الأخيرة"
+          >
+            »
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+</div>

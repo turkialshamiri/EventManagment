@@ -1,0 +1,10 @@
+<div class="shell">
+  <app-event-sidebar [open]="sidebarOpen()" (closeNav)="closeSidebar()" />
+  @if (sidebarOpen()) {
+    <button type="button" class="backdrop" aria-label="إغلاق القائمة" (click)="closeSidebar()"></button>
+  }
+  <app-event-header (menuToggle)="toggleSidebar()" />
+  <main class="shell__main">
+    <router-outlet />
+  </main>
+</div>

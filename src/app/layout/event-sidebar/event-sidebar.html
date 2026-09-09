@@ -1,0 +1,64 @@
+<aside class="sidebar" [class.sidebar--open]="open" aria-label="القائمة الرئيسية">
+  <div class="sidebar__inner">
+    <div class="brand">
+      <div class="brand__logo" aria-hidden="true">
+        <span class="brand__mark">M</span>
+      </div>
+      <div class="brand__text">
+        <span class="t-headline-sm brand__name">أوتيل بريميو</span>
+        <span class="t-caption brand__sub">نظام إدارة الفنادق والفعاليات</span>
+      </div>
+    </div>
+
+    <button type="button" class="property" aria-label="تبديل الفرع">
+      <span class="material-symbols-outlined property__icon">apartment</span>
+      <span class="property__text">
+        <span class="t-label-sm property__title">فندق بريميو بالاس - الرياض</span>
+        <span class="t-caption property__meta">الفرع الرئيسي • فاخر 5 نجوم</span>
+      </span>
+      <span class="material-symbols-outlined property__more">unfold_more</span>
+    </button>
+
+    <nav class="nav">
+      @for (section of sections; track section.title) {
+        <div class="nav__section">
+          <div class="nav__section-title t-caption">{{ section.title }}</div>
+          @for (item of section.items; track item.path) {
+            <a
+              class="nav__link"
+              [routerLink]="item.path"
+              routerLinkActive="nav__link--active"
+              [routerLinkActiveOptions]="{ exact: item.path === '/events' }"
+              (click)="closeNav.emit()"
+            >
+              <span class="material-symbols-outlined">{{ item.icon }}</span>
+              <span class="t-label-md">{{ item.label }}</span>
+            </a>
+          }
+        </div>
+      }
+    </nav>
+  </div>
+
+  <div class="sidebar__footer">
+    <div class="shift t-caption">
+      <span class="shift__dot" aria-hidden="true"></span>
+      وردية الصباح — نشطة • 08:00 – 16:00
+    </div>
+    <div class="user">
+      <div class="user__avatar" aria-hidden="true">عس</div>
+      <div class="user__info">
+        <span class="t-label-sm user__name">م. عبدالعزيز بن سلطان</span>
+        <span class="t-caption user__role">مدير الفعاليات والمناسبات</span>
+      </div>
+      <div class="user__actions">
+        <button type="button" class="icon-btn" title="المساعدة" aria-label="المساعدة">
+          <span class="material-symbols-outlined">help</span>
+        </button>
+        <button type="button" class="icon-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">
+          <span class="material-symbols-outlined">logout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,152 @@
+@if (open) {
+  <div class="modal-backdrop" (click)="close()" role="presentation">
+    <div
+      class="modal em-card"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="dialogTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal__accent"></div>
+      <header class="modal__head">
+        <div>
+          <h2 class="t-headline-lg">{{ dialogTitle }}</h2>
+          <p class="t-caption muted">تعريف الباقة وبنود الخدمات والأسعار</p>
+        </div>
+        <button type="button" class="icon-btn" (click)="close()" aria-label="إغلاق" [disabled]="saving()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <form class="modal__body" [formGroup]="form" (ngSubmit)="submit()">
+        <section class="section">
+          <h3 class="t-headline-sm">المعلومات الأساسية</h3>
+          <div class="grid-2">
+            <div class="em-field" [class.em-field--error]="fieldError('name')">
+              <label class="em-label" for="pkgName">اسم الباقة <span class="req">*</span></label>
+              <input id="pkgName" class="em-input" formControlName="name" placeholder="مثال: باقة الزفاف الذهبية" />
+              @if (fieldError('name'); as err) {
+                <span class="em-field-error">{{ err }}</span>
+              }
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="pkgCode">رمز الباقة</label>
+              <input id="pkgCode" class="em-input" formControlName="code" placeholder="PKG-GLD-001" />
+            </div>
+            <div class="em-field full">
+              <label class="em-label" for="pkgDesc">الوصف</label>
+              <textarea
+                id="pkgDesc"
+                class="em-textarea"
+                rows="3"
+                formControlName="description"
+                placeholder="وصف مختصر لمحتويات الباقة"
+              ></textarea>
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('durationHours')">
+              <label class="em-label" for="pkgDuration">مدة الباقة (ساعات)</label>
+              <input id="pkgDuration" type="number" min="0" step="1" class="em-input" formControlName="durationHours" />
+              @if (fieldError('durationHours'); as err) {
+                <span class="em-field-error">{{ err }}</span>
+              }
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="pkgStatus">الحالة</label>
+              <div class="em-select-wrap">
+                <select id="pkgStatus" class="em-select" formControlName="active">
+                  <option [ngValue]="true">نشطة</option>
+                  <option [ngValue]="false">غير نشطة</option>
+                </select>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" formArrayName="items">
+          <div class="section__head">
+            <h3 class="t-headline-sm">عناصر الباقة</h3>
+            <button type="button" class="em-btn em-btn--ghost em-btn--sm" (click)="addItem()">
+              <span class="material-symbols-outlined">add</span>
+              إضافة عنصر
+            </button>
+          </div>
+
+          @if (duplicateItemsError()) {
+            <div class="inline-error t-body-sm">لا يمكن تكرار نفس العنصر أكثر من مرة</div>
+          }
+
+          <div class="items-table-wrap">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>الخدمة / العنصر</th>
+                  <th>الكمية</th>
+                  <th>سعر الوحدة</th>
+                  <th>الإجمالي</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ctrl of items.controls; track $index; let i = $index) {
+                  <tr [formGroupName]="i">
+                    <td>
+                      <input class="em-input" formControlName="name" placeholder="اسم الخدمة" />
+                      @if (itemFieldError(i, 'name'); as err) {
+                        <span class="em-field-error">{{ err }}</span>
+                      }
+                    </td>
+                    <td>
+                      <input class="em-input" type="number" min="0.01" step="1" formControlName="quantity" />
+                      @if (itemFieldError(i, 'quantity'); as err) {
+                        <span class="em-field-error">{{ err }}</span>
+                      }
+                    </td>
+                    <td>
+                      <input class="em-input" type="number" min="0" step="1" formControlName="unitPrice" />
+                      @if (itemFieldError(i, 'unitPrice'); as err) {
+                        <span class="em-field-error">{{ err }}</span>
+                      }
+                    </td>
+                    <td class="total-cell">{{ itemTotal(i) | sar }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        class="icon-btn danger"
+                        (click)="removeItem(i)"
+                        [disabled]="items.length <= 1"
+                        aria-label="حذف العنصر"
+                      >
+                        <span class="material-symbols-outlined">delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="summary">
+            <span class="t-label-md">إجمالي الباقة المحسوب</span>
+            <strong class="t-headline-md">{{ calculatedTotal | sar }}</strong>
+          </div>
+        </section>
+
+        @if (saveError()) {
+          <div class="inline-error" role="alert">{{ saveError() }}</div>
+        }
+
+        <footer class="modal__actions">
+          <button type="button" class="em-btn em-btn--ghost" (click)="close()" [disabled]="saving()">إلغاء</button>
+          <button type="submit" class="em-btn em-btn--primary" [disabled]="saving()">
+            @if (saving()) {
+              جاري الحفظ...
+            } @else {
+              {{ isEdit ? 'حفظ التعديلات' : 'حفظ الباقة' }}
+            }
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}

@@ -1,0 +1,103 @@
+<div class="em-page calendar-page">
+  <div class="cal-head">
+    <div>
+      <h1 class="t-display-lg">تقويم الفعاليات</h1>
+      <p class="t-body-sm muted">عرض يومي / أسبوعي / شهري لحركة القاعات والتعارضات</p>
+    </div>
+    <div class="cal-tools">
+      <div class="view-toggle" role="tablist">
+        <button type="button" [class.active]="view() === 'day'" (click)="view.set('day')">يوم</button>
+        <button type="button" [class.active]="view() === 'week'" (click)="view.set('week')">أسبوع</button>
+        <button type="button" [class.active]="view() === 'month'" (click)="view.set('month')">شهر</button>
+      </div>
+      <div class="em-select-wrap">
+        <select
+          class="em-select"
+          [ngModel]="venueFilter()"
+          (ngModelChange)="venueFilter.set($event)"
+          aria-label="تصفية القاعة"
+        >
+          <option value="all">جميع القاعات</option>
+          @for (v of venues(); track v.id) {
+            <option [value]="v.id">{{ v.name }}</option>
+          }
+        </select>
+        <span class="material-symbols-outlined chevron">expand_more</span>
+      </div>
+      <a routerLink="/events/new" class="em-btn em-btn--primary">+ مناسبة جديدة</a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <app-page-state kind="loading" />
+  } @else if (view() === 'week') {
+    <div class="week em-card">
+      <div class="week__header">
+        @for (day of weekDays; track day.key) {
+          <div class="week__day-head" [class.today]="day.today">{{ day.label }}</div>
+        }
+      </div>
+      <div class="week__body">
+        @for (day of weekDays; track day.key) {
+          <div class="week__col" [class.today]="day.today">
+            @for (ev of eventsOn(day.key); track ev.id) {
+              <a
+                class="cal-event"
+                [routerLink]="['/events', ev.id]"
+                [style.borderInlineStartColor]="statusColor(ev.status)"
+                [class.conflict]="hasConflict(ev)"
+              >
+                <div class="t-label-sm">{{ ev.name }}</div>
+                <div class="t-caption muted">{{ ev.startTime }} – {{ ev.endTime }}</div>
+                <div class="t-caption">{{ ev.venueName }}</div>
+                <app-status-badge [status]="ev.status" />
+                @if (hasConflict(ev)) {
+                  <span class="conflict-tag">تعارض</span>
+                }
+              </a>
+            } @empty {
+              <span class="empty-day t-caption muted">لا مناسبات</span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  } @else if (view() === 'day') {
+    <div class="day-view em-card">
+      <h2 class="t-headline-md">الخميس، 24 أكتوبر 2024</h2>
+      <div class="day-lanes">
+        @for (hour of hours; track hour) {
+          <div class="hour-row">
+            <span class="hour-label t-caption">{{ hour }}:00</span>
+            <div class="hour-slot">
+              @for (ev of dayEvents(); track ev.id) {
+                @if (+ev.startTime.slice(0, 2) === hour) {
+                  <a class="cal-event" [routerLink]="['/events', ev.id]" [class.conflict]="hasConflict(ev)">
+                    <strong>{{ ev.name }}</strong>
+                    <span class="t-caption">{{ ev.venueName }} • {{ ev.startTime }}–{{ ev.endTime }}</span>
+                  </a>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="month em-card">
+      <div class="month__grid">
+        @for (cell of monthCells(); track cell.date) {
+          <div class="month__cell" [class.has]="eventsOn(cell.date).length">
+            <span class="t-label-sm">{{ cell.label }}</span>
+            @for (ev of eventsOn(cell.date).slice(0, 2); track ev.id) {
+              <a class="month-pill" [routerLink]="['/events', ev.id]">{{ ev.name }}</a>
+            }
+            @if (eventsOn(cell.date).length > 2) {
+              <span class="t-caption muted">+{{ eventsOn(cell.date).length - 2 }}</span>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

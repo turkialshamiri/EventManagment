@@ -1,0 +1,342 @@
+<div class="em-page dashboard">
+  @if (error()) {
+    <app-page-state
+      kind="error"
+      icon="error"
+      title="تعذر تحميل لوحة التحكم"
+      description="حدث خطأ أثناء جلب البيانات التشغيلية. حاول مرة أخرى."
+      actionLabel="إعادة المحاولة"
+      (action)="load()"
+    />
+  } @else if (loading()) {
+    <app-page-state kind="loading" />
+  } @else {
+    <!-- Header -->
+    <div class="dash-head">
+      <div class="dash-head__text">
+        <div class="dash-head__title-row">
+          <h1 class="t-headline-xl">إدارة المناسبات والفعاليات</h1>
+          <span class="live-pill t-caption">
+            <span class="live-pill__dot"></span>
+            مباشر • فندق بريميو بالاس
+          </span>
+        </div>
+        <p class="t-body-md muted">
+          متابعة حركة الحفلات والمؤتمرات اليومية، إشغال القاعات، والجاهزية التشغيلية للضيافة الفاخرة
+        </p>
+      </div>
+      <div class="dash-head__actions">
+        <div class="day-nav em-card">
+          <button type="button" class="icon-btn" title="اليوم السابق" aria-label="اليوم السابق">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+          <div class="day-nav__label">
+            <span class="material-symbols-outlined">calendar_month</span>
+            <span class="t-label-md">{{ calendarLabel }}</span>
+          </div>
+          <button type="button" class="icon-btn" title="اليوم التالي" aria-label="اليوم التالي">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+        </div>
+        <div class="em-select-wrap dept-select">
+          <select class="em-select" aria-label="تصفية الأقسام">
+            <option>جميع الأقسام والقاعات</option>
+            <option>حفلات الزفاف والمناسبات الملكية</option>
+            <option>المؤتمرات واجتماعات الشركات</option>
+            <option>الوفود الرسمية والدبلوماسية</option>
+          </select>
+          <span class="material-symbols-outlined chevron">expand_more</span>
+        </div>
+        <button type="button" class="em-btn em-btn--ghost">
+          <span class="material-symbols-outlined" style="color: var(--secondary)">picture_as_pdf</span>
+          تصدير جدول اليوم (BEO)
+        </button>
+        <a routerLink="/events/new" class="em-btn em-btn--primary">
+          <span class="material-symbols-outlined">add_circle</span>
+          + مناسبة جديدة
+        </a>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    @if (kpis(); as k) {
+      <div class="kpi-grid">
+        <app-kpi-card title="مناسبات اليوم" [value]="k.todayEvents" unit="فعاليات مجدولة" icon="celebration">
+          <span style="color: var(--on-tertiary-container); font-weight: 500">{{ k.todayActive }} مباشرة</span>
+          <span>•</span>
+          <span style="color: var(--secondary); font-weight: 500">{{ k.todayConfirmed }} مؤكدة</span>
+          <span>•</span>
+          <span>{{ k.todayPrep }} تجهيز</span>
+        </app-kpi-card>
+
+        <app-kpi-card
+          title="الحضور المتوقع اليوم"
+          [value]="k.expectedGuests | arNumber"
+          unit="ضيف ومدعو"
+          icon="groups"
+          iconTone="gold"
+        >
+          <div style="width: 100%">
+            <app-capacity-bar [percent]="k.capacityUtilization" label="نسبة الاستيعاب الكلية" />
+          </div>
+        </app-kpi-card>
+
+        <app-kpi-card
+          title="إيرادات مناسبات اليوم"
+          [value]="k.todayRevenue | arNumber"
+          unit="ر.س"
+          icon="account_balance_wallet"
+        >
+          <span style="color: var(--secondary); font-weight: 500"
+            >المحصل: {{ k.todayCollected | arNumber }}</span
+          >
+          <span style="color: var(--error); font-weight: 500">متبقي: {{ k.todayBalance | arNumber }}</span>
+        </app-kpi-card>
+
+        <app-kpi-card
+          title="المناسبات القادمة (7 أيام)"
+          [value]="k.upcoming7Days"
+          unit="حجز معتمد"
+          icon="upcoming"
+        >
+          <span style="color: var(--secondary); font-weight: 500">+{{ k.upcomingGrowthPercent }}% نمو</span>
+          <span>مقارنة بالأسبوع الفائت</span>
+        </app-kpi-card>
+
+        <app-kpi-card
+          title="إشغال القاعات اللحظي"
+          [value]="k.venueOccupancyPercent + '%'"
+          [unit]="'( ' + k.venuesOccupied + ' من ' + k.venuesTotal + ' قاعات)'"
+          icon="door_front"
+          iconTone="gold"
+        >
+          <span style="color: var(--secondary); font-weight: 500">{{ k.venuesFree }} قاعات شاغرة جاهزة</span>
+          <span>وردية المساء</span>
+        </app-kpi-card>
+      </div>
+    }
+
+    <!-- Alerts -->
+    <section class="alerts">
+      <div class="alerts__head">
+        <div class="alerts__title">
+          <span class="material-symbols-outlined" style="color: var(--error)">warning</span>
+          <h2 class="t-headline-sm">تنبيهات العمليات الحرجة (يتطلب إجراء فوري)</h2>
+          <span class="count-pill">{{ alerts().length }} أولويات</span>
+        </div>
+        <span class="t-caption muted">يتم التحديث المباشر من أنظمة الصيانة والضيافة</span>
+      </div>
+      <div class="alerts__grid">
+        @for (alert of alerts(); track alert.id) {
+          <article class="alert-card em-card" [attr.data-severity]="alert.severity">
+            <div class="alert-card__body">
+              <div class="alert-card__meta">
+                <span class="alert-card__cat t-label-sm">
+                  <span class="material-symbols-outlined">{{ alertIcon(alert.severity) }}</span>
+                  {{ alert.category }}
+                </span>
+                <span class="t-caption muted">{{ alert.timeLabel }}</span>
+              </div>
+              <h3 class="t-headline-sm">{{ alert.title }}</h3>
+              <p class="t-body-sm muted">{{ alert.description }}</p>
+            </div>
+            <div class="alert-card__foot">
+              @if (alert.severity === 'critical') {
+                <a
+                  class="em-btn em-btn--danger-solid em-btn--sm"
+                  [routerLink]="alert.eventId ? ['/events', alert.eventId] : '/events'"
+                >
+                  <span class="material-symbols-outlined">edit_note</span>
+                  {{ alert.actionLabel }}
+                </a>
+              } @else if (alert.severity === 'warning') {
+                <button type="button" class="em-btn em-btn--navy em-btn--sm">
+                  <span class="material-symbols-outlined">send</span>
+                  {{ alert.actionLabel }}
+                </button>
+              } @else {
+                <a
+                  class="em-btn em-btn--primary em-btn--sm"
+                  [routerLink]="alert.eventId ? ['/events', alert.eventId] : '/events'"
+                >
+                  <span class="material-symbols-outlined">check_circle</span>
+                  {{ alert.actionLabel }}
+                </a>
+              }
+              <span class="t-caption muted">{{ alert.venueName || alert.meta }}</span>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <!-- Today + Occupancy -->
+    <div class="mid-grid">
+      <section class="em-card panel">
+        <div class="panel__head">
+          <div>
+            <h2 class="t-headline-md">جدول مناسبات اليوم وجاهزية التشغيل</h2>
+            <p class="t-caption muted">متابعة دقيقة للحركة التشغيلية والجاهزية الميدانية</p>
+          </div>
+          <div class="tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              [class.tab--active]="dayFilter() === 'all'"
+              (click)="dayFilter.set('all')"
+            >
+              الكل ({{ todayEvents().length }})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              [class.tab--active]="dayFilter() === 'active'"
+              (click)="dayFilter.set('active')"
+            >
+              نشطة ({{ activeTodayCount() }})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab"
+              [class.tab--active]="dayFilter() === 'remaining'"
+              (click)="dayFilter.set('remaining')"
+            >
+              المتبقية
+            </button>
+          </div>
+        </div>
+
+        <div class="event-cards">
+          @for (ev of filteredToday(); track ev.id) {
+            <article class="event-card">
+              <div class="event-card__time">
+                <span class="t-headline-sm">{{ ev.startTime }}</span>
+                <span class="t-caption muted">{{ ev.endTime }}</span>
+              </div>
+              <div class="event-card__body">
+                <div class="event-card__top">
+                  <h3 class="t-headline-sm">
+                    <a [routerLink]="['/events', ev.id]">{{ ev.name }}</a>
+                  </h3>
+                  <app-status-badge [status]="ev.status" [showDot]="ev.status === 'in_progress'" />
+                </div>
+                <div class="event-card__meta t-body-sm muted">
+                  <span
+                    ><span class="material-symbols-outlined tiny">meeting_room</span>
+                    {{ ev.venueName }}</span
+                  >
+                  <span
+                    ><span class="material-symbols-outlined tiny">person</span> {{ ev.customer.name }}</span
+                  >
+                  <span
+                    ><span class="material-symbols-outlined tiny">groups</span>
+                    {{ ev.expectedGuests | arNumber }} ضيف</span
+                  >
+                </div>
+                <div class="event-card__actions">
+                  <button type="button" class="em-btn em-btn--ghost em-btn--sm">
+                    <span class="material-symbols-outlined">call</span> المنسق
+                  </button>
+                  <button type="button" class="em-btn em-btn--ghost em-btn--sm">
+                    <span class="material-symbols-outlined">assignment</span> BEO
+                  </button>
+                  <a [routerLink]="['/events', ev.id]" class="em-btn em-btn--navy em-btn--sm">التفاصيل</a>
+                </div>
+              </div>
+            </article>
+          } @empty {
+            <app-page-state
+              kind="empty"
+              icon="event_busy"
+              title="لا توجد مناسبات لهذا التصفية"
+              description="جرّب تغيير التبويب أو إنشاء مناسبة جديدة"
+            />
+          }
+        </div>
+      </section>
+
+      <section class="em-card panel">
+        <div class="panel__head">
+          <div>
+            <h2 class="t-headline-md">إشغال القاعات اليوم</h2>
+            <p class="t-caption muted">شريط زمني لإشغال كل قاعة</p>
+          </div>
+        </div>
+        <div class="occ-list">
+          @for (slot of occupancy(); track slot.venueId) {
+            <div class="occ-row">
+              <div class="occ-row__meta">
+                <span class="t-label-md">{{ slot.venueName }}</span>
+                <span class="t-caption" [class.over]="slot.status === 'overbooked'">
+                  {{ slot.occupancyPercent }}% • سعة {{ slot.capacity }}
+                </span>
+              </div>
+              <div class="occ-track" aria-hidden="true">
+                @if (slot.status !== 'free') {
+                  <div
+                    class="occ-bar"
+                    [attr.data-status]="slot.status"
+                    [style.inset-inline-start.%]="slotLeft(slot)"
+                    [style.width.%]="slotWidth(slot)"
+                    [title]="slot.eventName || ''"
+                  ></div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <a routerLink="/events/venues" class="panel-link t-label-sm">فتح خريطة القاعات الشاملة ←</a>
+      </section>
+    </div>
+
+    <!-- Bottom -->
+    <div class="bottom-grid">
+      <section class="em-card panel">
+        <div class="panel__head">
+          <h2 class="t-headline-md">معاينة تجهيزات القاعات النشطة</h2>
+        </div>
+        <div class="preview-grid">
+          @for (ev of todayEvents().slice(0, 2); track ev.id) {
+            <a class="preview" [routerLink]="['/events', ev.id]">
+              <img
+                [src]="
+                  ev.images?.[0] ||
+                  'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600&q=80'
+                "
+                [alt]="ev.venueName"
+              />
+              <div class="preview__overlay">
+                <span class="t-label-md">{{ ev.venueName }}</span>
+                <span class="t-caption">جاهزية {{ ev.readinessPercent ?? 80 }}%</span>
+              </div>
+            </a>
+          }
+        </div>
+        <button type="button" class="panel-link t-label-sm">عرض كاميرات المراقبة الميدانية</button>
+      </section>
+
+      <section class="em-card panel">
+        <div class="panel__head">
+          <h2 class="t-headline-md">فريق العمل المناوب اليوم</h2>
+        </div>
+        <div class="staff-list">
+          @for (member of staff(); track member.id) {
+            <div class="staff-card">
+              <div class="staff-card__avatar">{{ member.avatarInitials }}</div>
+              <div class="staff-card__info">
+                <span class="t-label-md">{{ member.name }}</span>
+                <span class="t-caption muted">{{ member.role }}</span>
+              </div>
+              <button type="button" class="icon-btn" [attr.aria-label]="'اتصال بـ ' + member.name">
+                <span class="material-symbols-outlined">call</span>
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  }
+</div>

@@ -1,0 +1,399 @@
+<div class="em-page create-page">
+  <div class="create-layout">
+    <div class="create-main">
+      <div class="page-head">
+        <div class="crumbs t-label-sm muted">
+          <a routerLink="/events">كافة المناسبات</a>
+          <span class="material-symbols-outlined crumb">arrow_back_ios</span>
+          <span class="current">إنشاء مناسبة جديدة</span>
+        </div>
+        <div class="title-row">
+          <h1 class="t-display-lg">إنشاء مناسبة جديدة</h1>
+          <span class="wizard-pill t-label-sm">معالج حجز الفعاليات</span>
+        </div>
+        <p class="t-body-md muted">
+          حجز القاعات، ربط النزيل، احتساب السعة التلقائي، واختيار باقات الضيافة الفاخرة
+        </p>
+      </div>
+
+      <div class="stepper" aria-label="خطوات الإنشاء">
+        @for (
+          step of [
+            'المعلومات الأساسية',
+            'التوقيت',
+            'القاعة والسعة',
+            'الباقات',
+            'ربط الغرف',
+            'الملخص',
+          ];
+          track step;
+          let i = $index
+        ) {
+          <div class="step" [class.done]="i < 2" [class.current]="i === 1">
+            <span class="step__num">{{ i < 2 && i === 0 ? '✓' : i + 1 }}</span>
+            <span class="t-caption">{{ step }}</span>
+          </div>
+          @if (i < 5) {
+            <div class="step__line" [class.done]="i < 1"></div>
+          }
+        }
+      </div>
+
+      <form [formGroup]="form" class="form-stack" (ngSubmit)="save(false)">
+        <!-- 01 Basic -->
+        <section class="em-card section">
+          <header class="section__head">
+            <span class="step-tag">01</span>
+            <div>
+              <h2 class="t-headline-md">المعلومات الأساسية والعميل</h2>
+              <p class="t-caption muted">اسم المناسبة، النوع، والمجموعة المرتبطة</p>
+            </div>
+          </header>
+          <div class="grid-2">
+            <div class="em-field" [class.em-field--error]="fieldError('name')">
+              <label class="em-label" for="name">اسم المناسبة <span class="req">*</span></label>
+              <input id="name" class="em-input" formControlName="name" placeholder="مثال: حفل زفاف أحمد ومحمد" />
+              @if (fieldError('name'); as err) {
+                <span class="em-field-error">{{ err }}</span>
+              }
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('eventTypeId')">
+              <label class="em-label" for="eventTypeId">نوع المناسبة <span class="req">*</span></label>
+              <div class="em-select-wrap">
+                <select id="eventTypeId" class="em-select" formControlName="eventTypeId">
+                  <option value="" disabled>اختر النوع</option>
+                  @for (t of types(); track t.id) {
+                    <option [value]="t.id" [disabled]="!t.active">{{ t.name }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+              </div>
+              @if (fieldError('eventTypeId'); as err) {
+                <span class="em-field-error">{{ err }}</span>
+              }
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="groupId">مجموعة المناسبات</label>
+              <div class="em-select-wrap">
+                <select id="groupId" class="em-select" formControlName="groupId">
+                  <option value="">بدون مجموعة</option>
+                  @for (g of groups(); track g.id) {
+                    <option [value]="g.id">{{ g.name }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+              </div>
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('customerId')">
+              <label class="em-label" for="customerId">العميل <span class="req">*</span></label>
+              <div class="em-select-wrap">
+                <select id="customerId" class="em-select" formControlName="customerId">
+                  <option value="" disabled>اختر العميل</option>
+                  @for (c of customers(); track c.id) {
+                    <option [value]="c.id">{{ c.name }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+              </div>
+              @if (fieldError('customerId'); as err) {
+                <span class="em-field-error">{{ err }}</span>
+              }
+            </div>
+          </div>
+          @if (selectedCustomer(); as cust) {
+            <div class="customer-card">
+              <div class="customer-card__avatar">{{ cust.name.slice(0, 1) }}</div>
+              <div class="customer-card__info">
+                <div class="name-row">
+                  <span class="t-headline-sm">{{ cust.name }}</span>
+                  @if (cust.isVip) {
+                    <span class="vip">VIP</span>
+                  }
+                </div>
+                <span class="t-caption muted">{{ cust.phone }} • {{ cust.email || '—' }}</span>
+              </div>
+            </div>
+          }
+        </section>
+
+        <!-- 02 Schedule -->
+        <section class="em-card section">
+          <header class="section__head">
+            <span class="step-tag">02</span>
+            <div>
+              <h2 class="t-headline-md">التوقيت والجدولة التشغيلية الدقيقة</h2>
+              <p class="t-caption muted">تواريخ التشغيل وأوقات التجهيز والبدء والإنهاء</p>
+            </div>
+          </header>
+          <div class="grid-2">
+            <div class="em-field" [class.em-field--error]="fieldError('startDate')">
+              <label class="em-label" for="startDate">تاريخ البداية <span class="req">*</span></label>
+              <input id="startDate" type="date" class="em-input" formControlName="startDate" />
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('endDate')">
+              <label class="em-label" for="endDate">تاريخ النهاية <span class="req">*</span></label>
+              <input id="endDate" type="date" class="em-input" formControlName="endDate" />
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="setupTime">وقت التجهيز</label>
+              <input id="setupTime" type="time" class="em-input" formControlName="setupTime" />
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('startTime')">
+              <label class="em-label" for="startTime">وقت البداية <span class="req">*</span></label>
+              <input id="startTime" type="time" class="em-input" formControlName="startTime" />
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('endTime')">
+              <label class="em-label" for="endTime">وقت النهاية <span class="req">*</span></label>
+              <input id="endTime" type="time" class="em-input" formControlName="endTime" />
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="teardownTime">وقت الفك</label>
+              <input id="teardownTime" type="time" class="em-input" formControlName="teardownTime" />
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 Venue -->
+        <section class="em-card section">
+          <header class="section__head">
+            <span class="step-tag">03</span>
+            <div>
+              <h2 class="t-headline-md">حجز القاعة وتوزيع المقاعد وسعة الحضور</h2>
+              <p class="t-caption muted">اختيار القاعة والتحقق من الطاقة الاستيعابية</p>
+            </div>
+          </header>
+          <div class="grid-2">
+            <div class="em-field" [class.em-field--error]="fieldError('venueId')">
+              <label class="em-label" for="venueId">القاعة <span class="req">*</span></label>
+              <div class="em-select-wrap">
+                <select id="venueId" class="em-select" formControlName="venueId">
+                  <option value="" disabled>اختر القاعة</option>
+                  @for (v of venues(); track v.id) {
+                    <option [value]="v.id" [disabled]="!v.active">{{ v.name }} ({{ v.capacity }})</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+              </div>
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="setupId">نمط التجهيز</label>
+              <div class="em-select-wrap">
+                <select id="setupId" class="em-select" formControlName="setupId">
+                  @for (s of selectedVenue()?.setups || []; track s.id) {
+                    <option [value]="s.id">{{ s.name }} — سعة {{ s.capacity }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined chevron">expand_more</span>
+              </div>
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('expectedGuests')">
+              <label class="em-label" for="expectedGuests">عدد الحضور المتوقع <span class="req">*</span></label>
+              <input id="expectedGuests" type="number" min="1" class="em-input" formControlName="expectedGuests" />
+            </div>
+            <div class="em-field" [class.em-field--error]="fieldError('guaranteedGuests') || guestsOrderError()">
+              <label class="em-label" for="guaranteedGuests">العدد المضمون <span class="req">*</span></label>
+              <input
+                id="guaranteedGuests"
+                type="number"
+                min="0"
+                class="em-input"
+                formControlName="guaranteedGuests"
+              />
+              @if (guestsOrderError()) {
+                <span class="em-field-error">العدد المضمون لا يمكن أن يتجاوز الحضور المتوقع</span>
+              }
+            </div>
+          </div>
+          <div class="capacity-block">
+            <app-capacity-bar [percent]="capacityPercent()" label="نسبة استغلال السعة" />
+            @if (overCapacity()) {
+              <div class="capacity-warn" role="alert">
+                <span class="material-symbols-outlined">warning</span>
+                تجاوزت القاعة الطاقة الاستيعابية المحددة. راجع المخطط الهندسي أو خفّض عدد الضيوف.
+              </div>
+            }
+          </div>
+          @if (selectedVenue()?.imageUrl; as img) {
+            <div class="venue-preview">
+              <img [src]="img" [alt]="selectedVenue()?.name || ''" />
+              <span class="t-label-sm">{{ selectedVenue()?.name }}</span>
+            </div>
+          }
+        </section>
+
+        <!-- 04 Package -->
+        <section class="em-card section">
+          <header class="section__head">
+            <span class="step-tag">04</span>
+            <div>
+              <h2 class="t-headline-md">حزمة المناسبة والخدمات المشمولة</h2>
+            </div>
+          </header>
+          <div class="em-field">
+            <label class="em-label" for="packageId">الحزمة</label>
+            <div class="em-select-wrap">
+              <select id="packageId" class="em-select" formControlName="packageId">
+                <option value="">بدون حزمة</option>
+                @for (p of packages(); track p.id) {
+                  <option [value]="p.id" [disabled]="!p.active">{{ packageLabel(p) }}</option>
+                }
+              </select>
+              <span class="material-symbols-outlined chevron">expand_more</span>
+            </div>
+          </div>
+          @if (selectedPackage(); as pkg) {
+            <div class="pkg-box">
+              <div class="pkg-box__head t-label-md">{{ pkg.name }}</div>
+              <table class="mini-table">
+                <thead>
+                  <tr>
+                    <th>البند</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of pkg.items; track item.id) {
+                    <tr>
+                      <td>{{ item.name }}</td>
+                      <td>{{ item.quantity }}</td>
+                      <td>{{ item.unitPrice | sar: false }}</td>
+                      <td>
+                        @if (item.gift) {
+                          <span class="tag gift">هدية</span>
+                        } @else if (item.included) {
+                          <span class="tag inc">مشمول</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        <!-- 05 Rooms -->
+        <section class="em-card section">
+          <header class="section__head">
+            <span class="step-tag">05</span>
+            <div>
+              <h2 class="t-headline-md">الربط مع غرف الفندق (Connected Rooms)</h2>
+            </div>
+          </header>
+          <label class="toggle">
+            <input type="checkbox" formControlName="linkRooms" />
+            <span>تفعيل حجز مجموعة غرف مرتبطة بالمناسبة</span>
+          </label>
+          @if (form.controls.linkRooms.value) {
+            <div class="rooms-banner">
+              <span class="material-symbols-outlined">hotel</span>
+              <div>
+                <div class="t-label-md">مجموعة غرف محجوزة للمناسبة</div>
+                <div class="t-caption muted">يمكن تحديد الغرف لاحقاً من شاشة التفاصيل</div>
+              </div>
+              <button type="button" class="em-btn em-btn--ghost em-btn--sm">اختيار الغرف</button>
+            </div>
+          }
+        </section>
+
+        <!-- 06 Notes -->
+        <section class="em-card section">
+          <header class="section__head">
+            <span class="step-tag">06</span>
+            <div>
+              <h2 class="t-headline-md">الملاحظات وأمر تشغيل الفعالية (BEO Instructions)</h2>
+            </div>
+          </header>
+          <div class="grid-2">
+            <div class="em-field">
+              <label class="em-label" for="notesCustomer">ملاحظات العميل</label>
+              <textarea id="notesCustomer" class="em-textarea" rows="4" formControlName="notesCustomer"></textarea>
+            </div>
+            <div class="em-field">
+              <label class="em-label" for="notesInternal">ملاحظات داخلية للتشغيل</label>
+              <textarea id="notesInternal" class="em-textarea" rows="4" formControlName="notesInternal"></textarea>
+            </div>
+          </div>
+        </section>
+      </form>
+    </div>
+
+    <!-- Summary rail -->
+    <aside class="summary-rail">
+      <div class="summary-actions">
+        <button type="button" class="em-btn em-btn--ghost" [disabled]="saving()" (click)="save(true)">
+          <span class="material-symbols-outlined">bookmark_border</span> حفظ كمسودة
+        </button>
+        <a routerLink="/events" class="em-btn em-btn--ghost">إلغاء</a>
+        <button type="button" class="em-btn em-btn--primary" [disabled]="saving()" (click)="save(false)">
+          <span class="material-symbols-outlined">check_circle</span>
+          {{ saving() ? 'جاري الحفظ...' : 'حفظ وتأكيد المناسبة' }}
+        </button>
+      </div>
+
+      @if (saveError()) {
+        <div class="capacity-warn">{{ saveError() }}</div>
+      }
+
+      <div class="conflict-box" [class.bad]="hasConflict()" [class.ok]="!hasConflict()">
+        <span class="material-symbols-outlined">{{ hasConflict() ? 'event_busy' : 'event_available' }}</span>
+        <span class="t-body-sm">
+          @if (hasConflict()) {
+            يوجد تعارض جدولة على نفس القاعة في هذا التوقيت.
+          } @else {
+            لا توجد تعارضات جدولة لهذه القاعة في التاريخ/الوقت المحدد.
+          }
+        </span>
+      </div>
+
+      <div class="summary-card dark">
+        <h3 class="t-headline-sm">ملخص المناسبة</h3>
+        <dl class="summary-dl">
+          <div>
+            <dt>الاسم</dt>
+            <dd>{{ form.controls.name.value || '—' }}</dd>
+          </div>
+          <div>
+            <dt>القاعة</dt>
+            <dd>{{ selectedVenue()?.name || '—' }}</dd>
+          </div>
+          <div>
+            <dt>التاريخ</dt>
+            <dd>{{ form.controls.startDate.value || '—' }}</dd>
+          </div>
+          <div>
+            <dt>الوقت</dt>
+            <dd>{{ form.controls.startTime.value }} – {{ form.controls.endTime.value }}</dd>
+          </div>
+          <div>
+            <dt>الحضور</dt>
+            <dd>{{ form.controls.expectedGuests.value | arNumber }} ضيف</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="em-card finance-card">
+        <h3 class="t-headline-sm">التفصيل المالي الحي</h3>
+        <div class="fin-row"><span>المجموع الفرعي</span><span>{{ finance().subtotal | sar }}</span></div>
+        <div class="fin-row">
+          <span>خصم {{ finance().discountPercent }}%</span>
+          <span>- {{ finance().discountAmount | sar }}</span>
+        </div>
+        <div class="fin-row">
+          <span>ضريبة {{ finance().taxPercent }}%</span><span>{{ finance().taxAmount | sar }}</span>
+        </div>
+        <div class="fin-total">
+          <span>الإجمالي</span>
+          <strong>{{ finance().total | sar: false }}</strong>
+          <span class="curr">ر.س</span>
+        </div>
+        <div class="fin-row muted">
+          <span>عربون {{ finance().depositPercent }}%</span>
+          <span>{{ finance().depositAmount | sar }}</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,359 @@
+@if (loading()) {
+  <app-page-state kind="loading" />
+} @else if (error() || !event()) {
+  <app-page-state
+    kind="error"
+    icon="error"
+    title="تعذر تحميل المناسبة"
+    description="المناسبة غير موجودة أو حدث خطأ أثناء الجلب."
+  />
+  <div style="text-align: center; margin-top: 1rem">
+    <a routerLink="/events" class="em-btn em-btn--primary">العودة لكافة المناسبات</a>
+  </div>
+} @else {
+  @let ev = event()!;
+  <div class="em-page details">
+    <div class="crumbs t-label-sm muted">
+      <a routerLink="/events">كافة المناسبات</a>
+      <span class="material-symbols-outlined crumb">arrow_back_ios</span>
+      <span class="current">{{ ev.code }}</span>
+    </div>
+
+    @if (actionMsg()) {
+      <div class="success-banner t-body-sm">{{ actionMsg() }}</div>
+    }
+
+    <div class="details-head">
+      <div>
+        <div class="title-row">
+          <h1 class="t-display-lg">{{ ev.name }}</h1>
+          <app-status-badge
+            [status]="ev.status"
+            [showDot]="ev.status === 'in_progress'"
+            [customLabel]="ev.status === 'in_progress' ? 'مؤكدة وقيد التنفيذ اليوم' : ''"
+          />
+        </div>
+      </div>
+      <div class="head-actions">
+        <button type="button" class="em-btn em-btn--primary">
+          <span class="material-symbols-outlined">picture_as_pdf</span> اعتماد BEO (PDF)
+        </button>
+        <a [routerLink]="['/events', ev.id, 'edit']" class="em-btn em-btn--ghost">تعديل البيانات</a>
+        <button type="button" class="em-btn em-btn--danger" (click)="cancelOpen.set(true)">إلغاء المناسبة</button>
+      </div>
+    </div>
+
+    <div class="summary-strip">
+      <div class="sum-card em-card">
+        <span class="t-caption muted">العميل</span>
+        <strong class="t-label-md">{{ ev.customer.name }}</strong>
+        @if (ev.customer.isVip) {
+          <span class="vip">VIP</span>
+        }
+      </div>
+      <div class="sum-card em-card">
+        <span class="t-caption muted">القاعة</span>
+        <strong class="t-label-md">{{ ev.venueName }}</strong>
+        <span class="t-caption muted">{{ ev.setupName }}</span>
+      </div>
+      <div class="sum-card em-card">
+        <span class="t-caption muted">التوقيت</span>
+        <strong class="t-label-md">{{ ev.startTime }} – {{ ev.endTime }}</strong>
+        <span class="t-caption muted">تجهيز {{ ev.setupTime || '—' }}</span>
+      </div>
+      <div class="sum-card em-card">
+        <span class="t-caption muted">الحضور</span>
+        <strong class="t-label-md"
+          >{{ ev.expectedGuests | arNumber }} / {{ ev.guaranteedGuests | arNumber }}</strong
+        >
+        <span class="t-caption muted">متوقع / مضمون</span>
+      </div>
+      <div class="sum-card em-card">
+        <span class="t-caption muted">المالية</span>
+        <strong class="t-label-md">{{ ev.finance.total | sar }}</strong>
+        <span class="t-caption" [style.color]="ev.finance.balance === 0 ? 'var(--status-confirmed)' : 'var(--error)'">
+          {{ ev.finance.balance === 0 ? 'مسدد بالكامل' : 'متبقي ' + (ev.finance.balance | sar) }}
+        </span>
+      </div>
+    </div>
+
+    @if (ev.hasCapacityWarning) {
+      <div class="capacity-alert" role="alert">
+        <span class="material-symbols-outlined">warning</span>
+        تجاوزت القاعة الطاقة الاستيعابية المحددة. راجع المخطط الهندسي قبل التنفيذ.
+      </div>
+    }
+
+    <div class="tabs" role="tablist">
+      @for (t of tabs; track t.id) {
+        <button
+          type="button"
+          role="tab"
+          class="tab"
+          [class.active]="tab() === t.id"
+          [attr.aria-selected]="tab() === t.id"
+          (click)="setTab(t.id)"
+        >
+          {{ t.label }}
+        </button>
+      }
+    </div>
+
+    <div class="details-grid">
+      <div class="details-main">
+        @switch (tab()) {
+          @case ('overview') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">المراحل والجدول التشغيلي اليومي</h2>
+              <div class="timeline">
+                @for (task of ev.timeline || []; track task.id) {
+                  <div class="timeline__item" [attr.data-status]="task.status">
+                    <div class="timeline__rail"></div>
+                    <div class="timeline__time t-label-md">{{ task.time }}</div>
+                    <div class="timeline__body">
+                      <div class="timeline__title">
+                        <span class="t-headline-sm">{{ task.title }}</span>
+                        <span class="task-badge">{{
+                          task.status === 'completed'
+                            ? 'مكتمل'
+                            : task.status === 'in_progress'
+                              ? 'قيد التنفيذ'
+                              : 'مجدول'
+                        }}</span>
+                      </div>
+                      @if (task.description) {
+                        <p class="t-caption muted">{{ task.description }}</p>
+                      }
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="t-body-sm muted">لا يوجد جدول تشغيلي بعد.</p>
+                }
+              </div>
+            </section>
+
+            <section class="em-card panel">
+              <h2 class="t-headline-md">باقة الضيافة وقائمة العشاء الملكية</h2>
+              <p class="t-body-sm muted">{{ ev.packageName || 'لا توجد باقة مرتبطة' }}</p>
+              @if (ev.items.length) {
+                <ul class="item-list">
+                  @for (item of ev.items; track item.id) {
+                    <li>
+                      <span>{{ item.name }}</span>
+                      <span class="muted">× {{ item.quantity }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+
+            <section class="em-card panel">
+              <h2 class="t-headline-md">حجوزات الإقامة الفندقية المرافقة للمناسبة</h2>
+              @for (r of ev.reservations || []; track r.id) {
+                <div class="res-row">
+                  <div>
+                    <div class="t-label-md">{{ r.roomName }}</div>
+                    <div class="t-caption muted">{{ r.roomNumber }} • {{ r.guestName || '—' }}</div>
+                  </div>
+                  <span class="tag">{{ r.status }}</span>
+                </div>
+              } @empty {
+                <p class="t-body-sm muted">لا توجد حجوزات غرف مرتبطة.</p>
+              }
+            </section>
+
+            @if (ev.images?.length) {
+              <section class="em-card panel">
+                <h2 class="t-headline-md">المعاينة البصرية وتنسيق القاعة</h2>
+                <div class="gallery">
+                  @for (img of ev.images; track img) {
+                    <img [src]="img" alt="معاينة القاعة" />
+                  }
+                </div>
+              </section>
+            }
+          }
+          @case ('timeline') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">الجدول التشغيلي</h2>
+              <div class="timeline">
+                @for (task of ev.timeline || []; track task.id) {
+                  <div class="timeline__item" [attr.data-status]="task.status">
+                    <div class="timeline__rail"></div>
+                    <div class="timeline__time t-label-md">{{ task.time }}</div>
+                    <div class="timeline__body">
+                      <span class="t-headline-sm">{{ task.title }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+          @case ('venue') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">القاعة والمخطط الهندسي</h2>
+              <p class="t-body-md">{{ ev.venueName }}</p>
+              <p class="t-body-sm muted">{{ ev.setupName }}</p>
+              <p class="t-body-sm">الحضور المتوقع: {{ ev.expectedGuests | arNumber }}</p>
+            </section>
+          }
+          @case ('items') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">الخدمات والبنود</h2>
+              <table class="fin-table">
+                <thead>
+                  <tr>
+                    <th>البند</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>خصم</th>
+                    <th>ضريبة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of ev.items; track item.id) {
+                    <tr>
+                      <td>{{ item.name }}</td>
+                      <td>{{ item.quantity }}</td>
+                      <td>{{ item.unitPrice | sar }}</td>
+                      <td>{{ item.discountPercent }}%</td>
+                      <td>{{ item.taxPercent }}%</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </section>
+          }
+          @case ('package') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">{{ ev.packageName || 'الباقة' }}</h2>
+              <p class="t-body-sm muted">تفاصيل باقة الضيافة المرتبطة بالمناسبة.</p>
+            </section>
+          }
+          @case ('rooms') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">حجوزات الغرف</h2>
+              @for (r of ev.reservations || []; track r.id) {
+                <div class="res-row">
+                  <div>
+                    <div class="t-label-md">{{ r.roomName }}</div>
+                    <div class="t-caption muted">{{ r.nights }} ليلة/ليالي</div>
+                  </div>
+                  <span class="tag">{{ r.status }}</span>
+                </div>
+              } @empty {
+                <p class="muted t-body-sm">لا توجد حجوزات.</p>
+              }
+            </section>
+          }
+          @case ('billing') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">الملف المالي والمحاسبي</h2>
+              <div class="fin-row"><span>المجموع الفرعي</span><span>{{ ev.finance.subtotal | sar }}</span></div>
+              <div class="fin-row"><span>الخصم</span><span>{{ ev.finance.discountAmount | sar }}</span></div>
+              <div class="fin-row"><span>الضريبة</span><span>{{ ev.finance.taxAmount | sar }}</span></div>
+              <div class="fin-row total"><span>الإجمالي</span><strong>{{ ev.finance.total | sar }}</strong></div>
+              <div class="fin-row"><span>المدفوع</span><span>{{ ev.finance.paid | sar }}</span></div>
+              <div class="fin-row"><span>المتبقي</span><span>{{ ev.finance.balance | sar }}</span></div>
+            </section>
+          }
+          @case ('notes') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">الملاحظات</h2>
+              <div class="notes-grid">
+                <div>
+                  <h3 class="t-label-md">ملاحظات العميل</h3>
+                  <p class="t-body-sm">{{ ev.notesCustomer || '—' }}</p>
+                </div>
+                <div>
+                  <h3 class="t-label-md">ملاحظات داخلية</h3>
+                  <p class="t-body-sm">{{ ev.notesInternal || '—' }}</p>
+                </div>
+                <div>
+                  <h3 class="t-label-md">تعليمات BEO</h3>
+                  <p class="t-body-sm">{{ ev.beoInstructions || '—' }}</p>
+                </div>
+              </div>
+            </section>
+          }
+          @case ('history') {
+            <section class="em-card panel">
+              <h2 class="t-headline-md">سجل التغييرات</h2>
+              <ul class="history">
+                <li>إنشاء المناسبة — نظام الحجوزات</li>
+                <li>تأكيد العقد والدفعات — المالية</li>
+                <li>تحديث الجاهزية التشغيلية — منسق الفعاليات</li>
+              </ul>
+            </section>
+          }
+        }
+      </div>
+
+      <aside class="details-side">
+        <section class="em-card panel">
+          <h2 class="t-headline-md">
+            فريق التنسيق وجهات الاتصال
+            <span class="count">{{ ev.team?.length || 0 }}</span>
+          </h2>
+          @for (m of ev.team || []; track m.id) {
+            <div class="team-row">
+              <div class="avatar">{{ m.avatarInitials }}</div>
+              <div>
+                <div class="t-label-md">{{ m.name }}</div>
+                <div class="t-caption muted">{{ m.role }}</div>
+                <div class="t-caption muted">{{ m.phone }}</div>
+              </div>
+            </div>
+          } @empty {
+            <p class="t-body-sm muted">لم يُعيَّن فريق بعد.</p>
+          }
+        </section>
+
+        <section class="em-card panel">
+          <h2 class="t-headline-md">الملف المالي والمحاسبي</h2>
+          <div class="fin-row"><span>قيمة العقد</span><strong>{{ ev.finance.total | sar }}</strong></div>
+          <div class="fin-row"><span>المدفوع</span><span>{{ ev.finance.paid | sar }}</span></div>
+          <div class="fin-row"><span>المتبقي</span><span>{{ ev.finance.balance | sar }}</span></div>
+          @for (p of ev.finance.installments || []; track p.id) {
+            <div class="install">
+              <span>{{ p.label }}</span>
+              <span>{{ p.amount | sar }}</span>
+              <span class="tag" [class.ok]="p.paid">{{ p.paid ? 'مدفوع' : 'مستحق' }}</span>
+            </div>
+          }
+          <button type="button" class="em-btn em-btn--ghost" style="width: 100%; margin-top: 8px">
+            تحميل فاتورة زاتكا QR
+          </button>
+        </section>
+
+        <section class="em-card panel">
+          <h2 class="t-headline-md">قائمة الجاهزية والاعتمادات</h2>
+          @for (c of ev.checklist || []; track c.id) {
+            <label class="check-row">
+              <span class="material-symbols-outlined" [style.color]="c.done ? 'var(--status-active)' : 'var(--outline)'">
+                {{ c.done ? 'check_circle' : 'radio_button_unchecked' }}
+              </span>
+              {{ c.label }}
+            </label>
+          }
+        </section>
+      </aside>
+    </div>
+
+    @if (cancelOpen()) {
+      <div class="modal-backdrop" (click)="cancelOpen.set(false)">
+        <div class="modal em-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+          <div class="modal__accent"></div>
+          <h2 class="t-headline-md">تأكيد إلغاء المناسبة #{{ ev.code }}</h2>
+          <p class="t-body-sm muted">
+            سيؤدي الإلغاء إلى تحرير القاعة وإيقاف أوامر التشغيل. لا يمكن التراجع بسهولة.
+          </p>
+          <div class="modal__actions">
+            <button type="button" class="em-btn em-btn--ghost" (click)="cancelOpen.set(false)">تراجع</button>
+            <button type="button" class="em-btn em-btn--danger-solid" (click)="confirmCancel()">تأكيد الإلغاء</button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}
